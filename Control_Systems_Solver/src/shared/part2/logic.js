@@ -1,4 +1,4 @@
-import { number, sum } from 'mathjs';
+import { e, number, sum } from 'mathjs';
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 
@@ -131,10 +131,38 @@ const postivePoles = (x) =>{
     return output;
 }
 
+// pasre eqution
+
+const pasre = (equ) =>{
+    equ = equ.replace(/((\+|\-|)(\d+|)(\.\d+|))(\*|)([A-z](\^|)(\d+|))/g ,  " $1|$8 &");
+    equ = equ.split("&");
+    let coeff = [];
+    for (let i = 0; i < equ.length; i++) {
+        let c = equ[i].split("|")[0];
+        let p = equ[i].split("|")[1];
+        
+        if(c.search(/(\+|\-|)\d+/g) !== -1) c = Number(c);
+        else if(c.search(/\+/g) !== -1) c = 1;
+        else if(c.search(/\-/g) !== -1)c = -1;
+        else c = 1;
+
+        if(p === undefined) p = 0;
+        else if(p.search(/\d+/g) !== -1) p = Number(p);
+        else p = 1
+
+        coeff[p] = c;
+    }
+
+    coeff.forEach(e =>{ if(e === undefined) e = 0});
+
+    return coeff.reverse();
+}
 
 
+// object 
+const routh = (equ) =>{
 
-const routh = (c) =>{
+    let c = pasre(equ);
 
     let output = {
         degree: c.length-1,
@@ -156,7 +184,7 @@ const routh = (c) =>{
 
 // test
 
-let test = [[1,1,10,72,152,240],
+let test1 = [[1,1,10,72,152,240],
             [1,2,1,2],
             [1,2,2,4,11,10],
             [3,5,6,3,2,1],
@@ -169,21 +197,28 @@ let test = [[1,1,10,72,152,240],
             [1,1,-2,-3,-7,-4,-4],
             [1,3,3,2,1]];
 
-for (let j = 0; j < test.length; j++) {
-    console.log(test[j]);
 
-    let output = routh(test[j]);
-    console.log("--------------------------------------------");
-    console.log(output)
 
-    // let stability = routhStability(output);
-    // if(output.isStabile) console.log(true);
-    // else console.log(false, output.stabiltyCheck);
+let test2 = "s^5+s^4+10s^3+72s^2+152s+240";
 
-    // console.log("no. postive poles:", output.noPostivePoles);
-    // console.log("roots:")
-    // console.log(output.poles);
-    console.log("--------------------------------------------");
-}
+let output = routh(test2);
+console.log(output);
+
+// for (let j = 0; j < test.length; j++) {
+//     console.log(test[j]);
+
+//     let output = routh(test[j]);
+//     console.log("--------------------------------------------");
+//     console.log(output)
+
+//     // let stability = routhStability(output);
+//     // if(output.isStabile) console.log(true);
+//     // else console.log(false, output.stabiltyCheck);
+
+//     // console.log("no. postive poles:", output.noPostivePoles);
+//     // console.log("roots:")
+//     // console.log(output.poles);
+//     console.log("--------------------------------------------");
+// }
 
 
