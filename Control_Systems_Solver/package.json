@@ -9,10 +9,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "mathjs": "^12.4.1",
+    "nerdamer": "^1.1.13",
     "rxjs": "^6.5.5",
     "uuid": "^8.0.0",
     "viz.js": "^2.1.2",
-    "mathjs": "^12.4.1",
     "vue": "^3.4.21",
     "vue-color": "^2.7.1",
     "vue-router": "^4.3.0",
