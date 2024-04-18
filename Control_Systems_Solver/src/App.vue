@@ -1,5 +1,6 @@
 <script setup>
 import SignalFlowGraph from './components/SignalFlowGraph.vue'
+import Routh from './components/Routh.vue';
 </script>
 
 <template>
