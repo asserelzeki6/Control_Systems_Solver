@@ -1,9 +1,9 @@
 import { e, number, sum } from 'mathjs';
 import { createRequire } from 'module';
+import { python } from 'pythonia';
+
 const require = createRequire(import.meta.url);
 
-// nerdamer
-var nerdamer = require("nerdamer/all.min")
 
 // initial table
 const routhInitalTable = (coff) => {
@@ -32,7 +32,7 @@ const routhInitalTable = (coff) => {
 
 const getElement = (t, [a,b]) => {
     let e = 1e-12;
-    // if(t[a-2][b+1] === 0) return 0;
+
     if(t[a-1][0] === 0) return ((e * t[a-2][b+1]) - (t[a-2][b] * t[a-1][b+1]))/ e;
     return ((t[a-1][0] * t[a-2][b+1]) - (t[a-2][0] * t[a-1][b+1]))/(t[a-1][0]);
 }
@@ -71,9 +71,6 @@ const routhFinalTable = (table , degree) =>{
                 break;
             }
 
-            // let e = getElement(table,[2+i, j]);
-            // if(e === 0 && j === 0) e = 1e-12;
-
             table[2+i][j] = getElement(table,[2+i, j]);;
         }
     }
@@ -106,29 +103,45 @@ const routhStability = (table) =>{
 
 // get roots
 
-const getEqu = (coff) =>{
-    let output = '';
-    for (let i = 0; i < coff.length; i++) {
-        output += coff[i].toString();
-        if(i < coff.length-1){
-            output += '*x^';
-            output += (coff.length-1-i).toString();
-            output += '+';
-        }
-    }
-    return output;
+const getRoots = async (coeff) => {
+    
+    const np =  await python('numpy');
+    const r = await np.roots(coeff);
+
+    return r.toString().replace("array([","").replace("])","");replace("\n","")
 }
 
-const postivePoles = (x) =>{
+const getRootsArray = (poles) =>{
     let output = [];
-    output[0] = [];
-    output[1] = x.toString().replace("[",'').replace("]",'').split(",");
-    x = x.toString().replace(/(\+|\-|)((\((\-|)\d+\/\d+\))|(\d+(\.\d+|)))\*\i/g,"");
-    x = x.replace("[",'').replace("]",'').split(",");
-    for (let i = 0; i< x.length; i++) {
-        output[0][i] = !(x[i][0] === '-');
+    for (let i = 0; i < poles.length; i++) {
+        output[i] = [];
+        output[i][1] = Number(poles[i].split("|")[0]);
+        output[i][2] = Number(poles[i].split("|")[1]);
+        
+
+        if(Math.abs(output[i][1]) < 1e-10) output[i][1] = 0;
+        if(Math.abs(output[i][2]) < 1e-10) output[i][2] = 0;
+
+        output[i][0] = (output[i][1] > 0);
+
+        if(output[i][1] === 0 && output[i][2] !== 0 ) output[i][1] = "";
+        else output[i][1] = String(output[i][1]) ;
+
+        if(output[i][2] > 0 ) {
+            
+            if(output[i][1] !== "") output[i][1] += "+";
+
+            if(output[i][2] !== 1) output[i][1] += String(output[i][2]) + "i";
+            else output[i][1] +=   "i";
+        }
+        else if(output[i][2] < 0 ){
+            if(output[i][2] !== -1) output[i][1] += String(output[i][2]) + "i";
+            else output[i][1] += "-" +  "i";
+        }
+
+        output[i].pop();
     }
-    return output;
+    return output
 }
 
 // pasre eqution
@@ -160,26 +173,42 @@ const pasre = (equ) =>{
 
 
 // object 
-const routh = (equ) =>{
+const routh = async (equ) =>{
 
     let c = pasre(equ);
+    console.log(c);
+
+    let p = undefined;
+    await getRoots(c).then(r => p = r);
+    console.log(p);
+    
+    p = p.replace(/\n+|\ +/g,"");
+    p = p.replace(/(\+|\-|)(\d+)(\.|)(\ +|)(\d+|)(\e(\+|\-)\d+|)((\+|\-)(\d+)(\.|)(\d+|)(\j)|)/g," $1$2$3$5$6|$9$10$11$12 ").split(",");
+
+    p = getRootsArray(p);
+
+    console.log(p);
 
     let output = {
         degree: c.length-1,
-        coff: c,
+        coeff: c,
         table:routhFinalTable(routhInitalTable(c),c.length-1),
-        poles: postivePoles(nerdamer.solve(getEqu(c),'x')),
+        poles: p,
         noPostivePoles: 0,
         stabiltyCheck : 0,
         isStabile: true
     }
 
     output.stabiltyCheck = routhStability(output.table);
-    output.noPostivePoles = (sum(output.poles[0]) > output.stabiltyCheck)? sum(output.poles[0]):output.stabiltyCheck ;
     output.isStabile = (output.stabiltyCheck === 0)
+    for (let i = 0; i < p.length; i++) {
+        output.noPostivePoles += p[i][0];        
+    }
 
-
-    return output;
+    // console.log(output);
+    python.exit();
+    return output ;
+    
 }
 
 // test
@@ -201,8 +230,23 @@ let test1 = [[1,1,10,72,152,240],
 
 let test2 = "s^5+s^4+10s^3+72s^2+152s+240";
 
-let output = routh(test2);
+let output = {};
+await routh(test2).then(r => output = r);
 console.log(output);
+
+
+
+// for (let i = 0; i < test1.length; i++) {
+    // let poles = undefined;
+    // await getRoots(test1[i]).then(r => poles = r);
+    // poles = poles.replace(/\n+|\ +/g,"");
+    // poles = poles.replace(/(\+|\-|)(\d+)(\.|)(\ +|)(\d+|)(\e(\+|\-)\d+|)((\+|\-)(\d+)(\.|)(\d+|)(\j)|)/g," $1$2$3$5$6|$9$10$11$12 ").split(",");
+    // console.log(poles);
+    // console.log(getRootsArray(poles));
+// }
+
+// python.exit();
+// process.exit();
 
 // for (let j = 0; j < test.length; j++) {
 //     console.log(test[j]);
